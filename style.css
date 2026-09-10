@@ -1,0 +1,141 @@
+:root {
+    --pink-primary: #ff4081;
+    --pink-dark: #c60055;
+    --pink-light: #ffe4ef;
+    --bg-app: #fafafa;
+}
+
+body {
+    background-color: #e9ecef;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app-container {
+    max-width: 480px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 80px;
+    background-color: var(--bg-app) !important;
+}
+
+/* Sembunyikan scrollbar bawaan browser */
+::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+.header-bg-pink {
+    background: linear-gradient(135deg, var(--pink-primary), var(--pink-dark));
+}
+
+.text-pink {
+    color: var(--pink-primary) !important;
+}
+
+.bg-pink {
+    background-color: var(--pink-primary) !important;
+}
+
+.bg-pink-light {
+    background-color: var(--pink-light) !important;
+}
+
+.btn-pink {
+    background-color: var(--pink-primary);
+    border-color: var(--pink-primary);
+    color: white;
+}
+
+.btn-pink:hover, .btn-pink:focus, .btn-pink:active {
+    background-color: var(--pink-dark) !important;
+    border-color: var(--pink-dark) !important;
+    color: white;
+}
+
+.btn-outline-pink {
+    border: 2px solid #f1f3f5;
+    color: var(--pink-primary);
+    transition: all 0.2s ease;
+}
+
+.btn-outline-pink:hover, .btn-outline-pink:active {
+    background-color: var(--pink-light);
+    border-color: var(--pink-primary);
+    color: var(--pink-dark);
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    height: 70px;
+    z-index: 1040;
+    max-width: 480px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #adb5bd;
+    transition: all 0.2s ease-in-out;
+    padding: 5px 15px;
+    border-radius: 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.nav-item.active {
+    color: var(--pink-primary);
+}
+
+.nav-icon-bg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-item.active .nav-icon-bg {
+    background-color: var(--pink-light);
+}
+
+.btn-add-pin {
+    transition: transform 0.1s ease;
+    cursor: pointer;
+}
+
+.btn-add-pin:active {
+    transform: scale(0.95);
+    background-color: #e9ecef !important;
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    border: none;
+    padding: 0;
+    transition: all 0.3s ease;
+}
+
+.indicator-dot.active {
+    background-color: var(--pink-primary);
+    width: 20px;
+    border-radius: 4px;
+}
+
+@media (min-width: 576px) {
+    .app-modal {
+        max-width: 400px;
+        margin: 1.75rem auto;
+    }
+}

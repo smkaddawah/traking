@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load data dari database dan AI
     loadDataFromSupabase();
     fetchGeminiAIInsights();
+    loadAIInsightDariDatabase();
 
     // Event listener tombol simpan
     document.getElementById('formBelanja').addEventListener('submit', handleSimpanBelanja);
@@ -222,43 +223,21 @@ async function fetchGeminiAIInsights() {
         return;
     }
 
-    aiText1.innerText = "Lagi meracik analisis mendalam dari seluruh riwayatmu...";
-    if (aiText2) aiText2.innerText = "Tunggu sebentar ya...";
+    aiText1.innerText = "Lagi mikir & meracik analisis dari datamu...";
+    if (aiText2) aiText2.innerText = "Sabar ya, tunggu sebentar...";
 
     try {
-        // Ambil seluruh data master barang dan riwayat transaksi untuk analisis pola mendalam
-        const { data: trxData } = await db
-            .from('transaksi')
-            .select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)')
-            .order('tanggal_transaksi', { ascending: false });
+        const { data: trxData } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
+        const { data: barangData } = await db.from('barang').select('*');
 
-        const { data: barangData } = await db
-            .from('barang')
-            .select('*');
+        let infoBarang = barangData && barangData.length > 0 ? barangData.map(b => `- ${b.nama_barang} (Kat: ${b.kategori}, Stok: ${b.stok_saat_ini})`).join('\n') : "Belum ada barang.";
+        let infoTrx = trxData && trxData.length > 0 ? trxData.map(t => `- Beli ${t.barang?.nama_barang || 'Barang'} (${t.jumlah_beli}x) pd ${new Date(t.tanggal_transaksi).toLocaleDateString('id-ID')}`).join('\n') : "Belum ada transaksi.";
 
-        let infoBarang = barangData && barangData.length > 0 
-            ? barangData.map(b => `- ${b.nama_barang} (Kategori: ${b.kategori}, Stok Terkini: ${b.stok_saat_ini})`).join('\n') 
-            : "Belum ada data master barang.";
-
-        let infoTrx = trxData && trxData.length > 0 
-            ? trxData.map(t => `- Membeli ${t.barang?.nama_barang || 'Barang'} sebanyak ${t.jumlah_beli} item pada ${new Date(t.tanggal_transaksi).toLocaleDateString('id-ID')}`).join('\n') 
-            : "Belum ada riwayat transaksi.";
-
-        const promptText = `Bertindaklah sebagai penasihat keuangan dan pengelola logistik pribadi yang jeli, santai, dan asyik seperti sahabat sendiri. 
-        Berikut adalah data lengkap master barang dan seluruh riwayat transaksi pengguna:
-        
-        [DATA MASTER BARANG & STOK]:
-        ${infoBarang}
-
-        [RIWAYAT TRANSAKSI LENGKAP]:
-        ${infoTrx}
-
-        Tugasmu:
-        Analisis pola kebiasaan belanja dan konsumsi pengguna secara mendalam. Perhatikan jika ada barang kategori bulanan/mingguan yang ternyata habis lebih cepat dari perkiraan (sehingga dibeli berulang dalam waktu dekat). Berikan masukan yang agak panjang, komprehensif, mengalir, dan detail. 
-        Bagi jawabannya menjadi 2 bagian dengan pemisah persis simbol '|||':
-        1. Ulasan mendalam soal pola konsumsi dan kebiasaan belanja barang (misalnya: menegur santai jika takaran beli beras bulanan ternyata kurang dan habis sebelum waktunya, serta saran takaran yang lebih pas).
-        2. Saran dan motivasi pengelolaan keuangan secara keseluruhan berdasarkan perputaran uang dan barang di atas.
-        Gunakan bahasa Indonesia yang akrab, mengalir, dan santai (tidak kaku seperti robot).`;
+        const promptText = `Sebagai penasihat keuangan dan sahabat santai. Data barang: [${infoBarang}]. Data transaksi: [${infoTrx}]. 
+        Bagi 2 bagian dipisah '|||':
+        1. Ulasan mendalam soal pola konsumsi barang (ingatkan santai misal takaran bulanan habis cepat).
+        2. Saran kelola uang dari pola itu.
+        Pakai bahasa santai akrab.`;
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -269,8 +248,7 @@ async function fetchGeminiAIInsights() {
         const data = await response.json();
         
         if (data.error) {
-            console.error("Gemini API Error:", data.error.message);
-            aiText1.innerText = "Gagal memuat AI: " + data.error.message;
+            aiText1.innerText = "Gagal memuat AI, kuota mungkin habis. Coba lagi nanti.";
             return;
         }
 
@@ -278,16 +256,32 @@ async function fetchGeminiAIInsights() {
             const fullText = data.candidates[0].content.parts[0].text;
             const parts = fullText.split('|||');
 
-            aiText1.innerText = parts[0] ? parts[0].trim() : fullText;
-            if (aiText2 && parts[1]) {
-                aiText2.innerText = parts[1].trim();
-            }
+            const teksPertama = parts[0] ? parts[0].trim() : fullText;
+            const teksKedua = parts[1] ? parts[1].trim() : "Terus semangat catat keuanganmu!";
+
+            // Tampilkan di layar
+            aiText1.innerText = teksPertama;
+            if (aiText2) aiText2.innerText = teksKedua;
+
+            // --- SIMPAN KE SUPABASE (CASHING) ---
+            // Simpan selalu di id: 1 agar menimpa data yang lama
+            await db.from('ai_insight').upsert([{
+                id: 1,
+                teks_utama: teksPertama,
+                teks_analisis: teksKedua
+            }]);
+            
+            // Perbarui juga isi teks di Modal Detail Analisis jika sedang buka
+            const detailCatatan = document.getElementById('detailCatatanAI');
+            if (detailCatatan) detailCatatan.innerText = teksPertama;
         }
     } catch (error) {
-        console.error("Gagal memuat AI:", error);
-        aiText1.innerText = "Koneksi ke AI gagal dimuat.";
+        console.error("Error:", error);
+        aiText1.innerText = "Koneksi gagal. Pastikan internet stabil.";
     }
 }
+
+
 
 // ==========================================
 // 6. KONEKSI SUPABASE: LOAD & SIMPAN DATA
@@ -875,5 +869,24 @@ async function bukaDetailAnalisis() {
         catatanAI.innerText = aiTextElement && aiTextElement.innerText !== "Menganalisis pola belanja dan stok barang Anda..." 
             ? aiTextElement.innerText 
             : "Santai, keuanganmu lagi kita pantau bareng kok. Input terus datanya biar makin akurat!";
+    }
+}
+
+// Fungsi untuk memuat teks AI yang tersimpan di Supabase
+async function loadAIInsightDariDatabase() {
+    const aiText1 = document.getElementById('ai-text-1');
+    const aiText2 = document.getElementById('ai-text-2');
+
+    const { data, error } = await db
+        .from('ai_insight')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+    if (data && !error) {
+        if (aiText1) aiText1.innerText = data.teks_utama || "Belum ada analisis.";
+        if (aiText2) aiText2.innerText = data.teks_analisis || "Klik tombol Refresh AI untuk memuat data pertama kalinya.";
+    } else {
+        if (aiText1) aiText1.innerText = "Belum ada analisis. Silakan klik Refresh AI.";
     }
 }

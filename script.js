@@ -1,14 +1,14 @@
 // ==========================================
 // 1. KONFIGURASI SUPABASE & GEMINI API
 // ==========================================
-const SUPABASE_URL = '';
-const SUPABASE_KEY = ''; 
+const SUPABASE_URL = 'https://uzbetawwsxvqnerlrmpw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_LJn-AYxrSlJ6BzIfhJxh3w_vHHvHupD'; 
 
 // Menggunakan nama variabel 'db' agar tidak bentrok dengan global 'supabase' dari CDN
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Ganti dengan API Key Google Gemini Anda (Gratis dari Google AI Studio)
-const GEMINI_API_KEY = '';
+const GEMINI_API_KEY = 'AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw';
 
 let currentSaldo = 0;
 

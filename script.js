@@ -296,6 +296,7 @@ window.createNewGRCode = function() {
         // Kita cetak error aslinya ke layar agar tahu pasti penyebabnya
         aiText1.innerText = "Error Sistem: " + error.message;
     }
+        }
         
 // ==========================================
 // 6. KONEKSI SUPABASE: LOAD & SIMPAN DATA

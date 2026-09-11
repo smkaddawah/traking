@@ -218,8 +218,9 @@ async function fetchGeminiAIInsights() {
     const aiText2 = document.getElementById('ai-text-2');
     if (!aiText1) return;
 
-    if (GEMINI_API_KEY === 'GANTI_DENGAN_API_KEY_GEMINI_ANDA') {
-        aiText1.innerText = "Masukkan API Key Gemini Anda di script.js.";
+    // ATURAN PEMBLOKIRAN AIzaSy SUDAH DIHAPUS - KUNCI AQ... SEKARANG DITERIMA!
+    if (GEMINI_API_KEY === 'AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw' || GEMINI_API_KEY.trim() === '') {
+        aiText1.innerText = "Error: Masukkan API Key di script.js.";
         return;
     }
 
@@ -227,6 +228,7 @@ async function fetchGeminiAIInsights() {
     if (aiText2) aiText2.innerText = "Sabar ya, tunggu sebentar...";
 
     try {
+        // Ambil data dari Supabase
         const { data: trxData } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
         const { data: barangData } = await db.from('barang').select('*');
 
@@ -239,7 +241,8 @@ async function fetchGeminiAIInsights() {
         2. Saran kelola uang dari pola itu.
         Pakai bahasa santai akrab.`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        // Menggunakan model terbaru gemini-3.8-flash sesuai gambar dokumentasimu
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
@@ -248,7 +251,13 @@ async function fetchGeminiAIInsights() {
         const data = await response.json();
         
         if (data.error) {
-            aiText1.innerText = "Gagal memuat AI, kuota mungkin habis. Coba lagi nanti.";
+            console.error("Gemini API Error:", data.error.message);
+            // Kalau masih limit, kita tampilkan pesan yang lebih santai
+            if (data.error.code === 429) {
+                aiText1.innerText = "Sabar, AI lagi istirahat (kena limit kuota). Coba klik refresh lagi 1 menit kemudian.";
+            } else {
+                aiText1.innerText = "Gagal memuat AI: " + data.error.message;
+            }
             return;
         }
 
@@ -263,15 +272,13 @@ async function fetchGeminiAIInsights() {
             aiText1.innerText = teksPertama;
             if (aiText2) aiText2.innerText = teksKedua;
 
-            // --- SIMPAN KE SUPABASE (CASHING) ---
-            // Simpan selalu di id: 1 agar menimpa data yang lama
+            // Simpan ke Supabase agar hemat kuota di HP lain (fitur caching)
             await db.from('ai_insight').upsert([{
                 id: 1,
                 teks_utama: teksPertama,
                 teks_analisis: teksKedua
             }]);
             
-            // Perbarui juga isi teks di Modal Detail Analisis jika sedang buka
             const detailCatatan = document.getElementById('detailCatatanAI');
             if (detailCatatan) detailCatatan.innerText = teksPertama;
         }
@@ -280,8 +287,6 @@ async function fetchGeminiAIInsights() {
         aiText1.innerText = "Koneksi gagal. Pastikan internet stabil.";
     }
 }
-
-
 
 // ==========================================
 // 6. KONEKSI SUPABASE: LOAD & SIMPAN DATA
@@ -890,3 +895,77 @@ async function loadAIInsightDariDatabase() {
         if (aiText1) aiText1.innerText = "Belum ada analisis. Silakan klik Refresh AI.";
     }
 }
+
+// ==========================================
+// 9. FITUR BARCODE SCANNER KAMERA
+// ==========================================
+let html5QrCode;
+
+function mulaiScan() {
+    const placeholder = document.getElementById('kameraPlaceholder');
+    const reader = document.getElementById('reader');
+    const overlay = document.getElementById('scannerOverlay');
+
+    // Sembunyikan placeholder, tampilkan kamera & animasi
+    placeholder.classList.add('d-none');
+    reader.style.display = 'block';
+    overlay.classList.remove('d-none');
+
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 100 }, // Bentuk melebar untuk baca barcode batang
+        aspectRatio: 1.0
+    };
+
+    // Nyalakan kamera belakang (environment)
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
+        async (decodedText, decodedResult) => {
+            // Jika berhasil scan:
+            console.log(`Scan berhasil: ${decodedText}`);
+            
+            // 1. Masukkan hasil scan ke kolom input kode
+            const inputKode = document.getElementById('inputKode');
+            inputKode.value = decodedText;
+            
+            // 2. Matikan kamera agar tidak nyala terus
+            matikanKamera();
+
+            // 3. Picu pencarian data otomatis di dropdown
+            const eventInput = new Event('input', { bubbles: true });
+            inputKode.dispatchEvent(eventInput);
+        },
+        (errorMessage) => {
+            // Proses mencari barcode (abaikan error karena frame belum pas)
+        }
+    ).catch(err => {
+        console.error("Kamera gagal:", err);
+        alert("Gagal mengakses kamera. Pastikan kamu sudah memberikan izin akses kamera di browser.");
+        matikanKamera();
+    });
+}
+
+function matikanKamera() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('reader').style.display = 'none';
+            document.getElementById('scannerOverlay').classList.add('d-none');
+            document.getElementById('kameraPlaceholder').classList.remove('d-none');
+        }).catch(err => console.log(err));
+    }
+}
+
+// Pastikan kamera mati jika modal ditutup (biar kamera gak nyala di background)
+document.addEventListener('DOMContentLoaded', () => {
+    const modalBelanjaEl = document.getElementById('modalBelanja');
+    if (modalBelanjaEl) {
+        modalBelanjaEl.addEventListener('hidden.bs.modal', function () {
+            matikanKamera();
+        });
+    }
+});

@@ -293,10 +293,10 @@ window.createNewGRCode = function() {
         }
     } catch (error) {
         console.error("Error:", error);
-        aiText1.innerText = "Koneksi gagal. Pastikan internet stabil.";
+        // Kita cetak error aslinya ke layar agar tahu pasti penyebabnya
+        aiText1.innerText = "Error Sistem: " + error.message;
     }
-        }
-
+        
 // ==========================================
 // 6. KONEKSI SUPABASE: LOAD & SIMPAN DATA
 // ==========================================

@@ -224,13 +224,12 @@ window.createNewGRCode = function() {
 // ==========================================
 // 5. INTEGRASI GEMINI AI (INSIGHTS)
 // ==========================================
-async function fetchGeminiAIInsights() {
+
+        async function fetchGeminiAIInsights() {
     const aiText1 = document.getElementById('ai-text-1');
     const aiText2 = document.getElementById('ai-text-2');
     if (!aiText1) return;
 
-    // ATURAN PEMBLOKIRAN AIzaSy SUDAH DIHAPUS - KUNCI AQ... SEKARANG DITERIMA!
-    // Cukup cek apakah kuncinya kosong atau masih teks bawaan
     if (GEMINI_API_KEY === 'GANTI_DENGAN_API_KEY_GEMINI_ANDA' || GEMINI_API_KEY.trim() === '') {
         aiText1.innerText = "Error: Masukkan API Key di script.js.";
         return;
@@ -240,7 +239,6 @@ async function fetchGeminiAIInsights() {
     if (aiText2) aiText2.innerText = "Sabar ya, tunggu sebentar...";
 
     try {
-        // Ambil data dari Supabase
         const { data: trxData } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
         const { data: barangData } = await db.from('barang').select('*');
 
@@ -253,10 +251,15 @@ async function fetchGeminiAIInsights() {
         2. Saran kelola uang dari pola itu.
         Pakai bahasa santai akrab.`;
 
-        // Menggunakan model terbaru gemini-3.8-flash sesuai gambar dokumentasimu
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        // PERUBAHAN UTAMA DI SINI:
+        // 1. URL dibersihkan, tidak pakai ?key= lagi.
+        // 2. Kunci AQ... milikmu dimasukkan lewat jalur khusus 'x-goog-api-key' di Headers.
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-goog-api-key': GEMINI_API_KEY // <--- API Key AQ... kamu masuk lewat sini!
+            },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
@@ -264,12 +267,7 @@ async function fetchGeminiAIInsights() {
         
         if (data.error) {
             console.error("Gemini API Error:", data.error.message);
-            // Kalau masih limit, kita tampilkan pesan yang lebih santai
-            if (data.error.code === 429) {
-                aiText1.innerText = "Sabar, AI lagi istirahat (kena limit kuota). Coba klik refresh lagi 1 menit kemudian.";
-            } else {
-                aiText1.innerText = "Gagal memuat AI: " + data.error.message;
-            }
+            aiText1.innerText = "Gagal memuat AI: " + data.error.message;
             return;
         }
 
@@ -280,11 +278,9 @@ async function fetchGeminiAIInsights() {
             const teksPertama = parts[0] ? parts[0].trim() : fullText;
             const teksKedua = parts[1] ? parts[1].trim() : "Terus semangat catat keuanganmu!";
 
-            // Tampilkan di layar
             aiText1.innerText = teksPertama;
             if (aiText2) aiText2.innerText = teksKedua;
 
-            // Simpan ke Supabase agar hemat kuota di HP lain (fitur caching)
             await db.from('ai_insight').upsert([{
                 id: 1,
                 teks_utama: teksPertama,
@@ -298,7 +294,7 @@ async function fetchGeminiAIInsights() {
         console.error("Error:", error);
         aiText1.innerText = "Koneksi gagal. Pastikan internet stabil.";
     }
-}
+        }
 
 // ==========================================
 // 6. KONEKSI SUPABASE: LOAD & SIMPAN DATA

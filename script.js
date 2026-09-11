@@ -8,7 +8,7 @@ const SUPABASE_KEY = 'sb_publishable_LJn-AYxrSlJ6BzIfhJxh3w_vHHvHupD';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Ganti dengan API Key Google Gemini Anda (Gratis dari Google AI Studio)
-const GEMINI_API_KEY = 'AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw';
+const GEMINI_API_KEY = "AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw";
 
 let currentSaldo = 0;
 

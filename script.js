@@ -8,7 +8,7 @@ const SUPABASE_KEY = 'sb_publishable_LJn-AYxrSlJ6BzIfhJxh3w_vHHvHupD';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Ganti dengan API Key Google Gemini Anda (Gratis dari Google AI Studio)
-const GEMINI_API_KEY = "AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw";
+const GEMINI_API_KEY = "AQ.Ab8RN6JYlgjlscGW1UOsWd1CHusRD-N8WTxBw7wdyfB8AtnoYQ";
 
 let currentSaldo = 0;
 
@@ -258,7 +258,7 @@ window.createNewGRCode = function() {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'x-goog-api-key': 'AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw' // <-- Langsung tempel di sini
+                'x-goog-api-key': 'AQ.Ab8RN6JYlgjlscGW1UOsWd1CHusRD-N8WTxBw7wdyfB8AtnoYQ' // <-- Langsung tempel di sini
             },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });

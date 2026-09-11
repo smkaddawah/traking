@@ -254,15 +254,14 @@ window.createNewGRCode = function() {
         // PERUBAHAN UTAMA DI SINI:
         // 1. URL dibersihkan, tidak pakai ?key= lagi.
         // 2. Kunci AQ... milikmu dimasukkan lewat jalur khusus 'x-goog-api-key' di Headers.
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'x-goog-api-key': 'AQ.Ab8RN6JYlgjlscGW1UOsWd1CHusRD-N8WTxBw7wdyfB8AtnoYQ' // <-- Langsung tempel di sini
+                'x-goog-api-key': GEMINI_API_KEY // <--- API Key AQ... kamu masuk lewat sini!
             },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
-
 
         const data = await response.json();
         
@@ -293,10 +292,10 @@ window.createNewGRCode = function() {
         }
     } catch (error) {
         console.error("Error:", error);
-        // Kita cetak error aslinya ke layar agar tahu pasti penyebabnya
-        aiText1.innerText = "Error Sistem: " + error.message;
+        aiText1.innerText = "Koneksi gagal. Pastikan internet stabil.";
     }
         }
+
         
 // ==========================================
 // 6. KONEKSI SUPABASE: LOAD & SIMPAN DATA

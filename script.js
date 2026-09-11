@@ -447,14 +447,18 @@ async function handleSimpanBelanja(e) {
     }
 
     // Insert transaksi
-    const { error: errTrx } = await db
-        .from('transaksi')
-        .insert([{
-            barang_id: barangId,
-            jumlah_beli: qty,
-            total_harga: totalBelanja
-        }]);
-
+    // Proses Simpan ke Supabase (tabel transaksi)
+            const { error: errTrx } = await db.from('transaksi').insert([
+                {
+                    // GANTI NAMA VARIABEL DI BAWAH INI SESUAIKAN DENGAN KODEMU ASLI
+                    barang_id: item.id, // Sebelumnya item.id_barang, coba ganti jadi item.id atau item.barang_id
+                    jumlah_beli: item.qty, // Ini sudah benar
+                    total_harga: item.subtotal, // Sebelumnya item.total_harga, coba ganti jadi item.subtotal atau item.total
+                    
+                    // Tanggal tetap pakai ini:
+                    tanggal_transaksi: `${tanggalPilihan}T12:00:00+07:00` 
+                }
+            ]);
     if (errTrx) {
         alert('Gagal menyimpan transaksi: ' + errTrx.message);
         return;

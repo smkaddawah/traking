@@ -239,8 +239,14 @@ window.createNewGRCode = function() {
     if (aiText2) aiText2.innerText = "Sabar ya, tunggu sebentar...";
 
     try {
-        const { data: trxData } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
-        const { data: barangData } = await db.from('barang').select('*');
+        // 1. AMBIL DATA DARI DATABASE (SUPABASE)
+        const { data: trxData, error: errTrx } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
+        const { data: barangData, error: errBarang } = await db.from('barang').select('*');
+
+        // CEK DI CONSOLE (F12) - Bukti bahwa data berhasil diambil dari database
+        console.log("Data Transaksi:", trxData);
+        console.log("Error Transaksi:", errTrx);
+        console.log("Data Barang:", barangData);
 
         let infoBarang = barangData && barangData.length > 0 ? barangData.map(b => `- ${b.nama_barang} (Kat: ${b.kategori}, Stok: ${b.stok_saat_ini})`).join('\n') : "Belum ada barang.";
         let infoTrx = trxData && trxData.length > 0 ? trxData.map(t => `- Beli ${t.barang?.nama_barang || 'Barang'} (${t.jumlah_beli}x) pd ${new Date(t.tanggal_transaksi).toLocaleDateString('id-ID')}`).join('\n') : "Belum ada transaksi.";
@@ -251,18 +257,12 @@ window.createNewGRCode = function() {
         2. Saran kelola uang dari pola itu.
         Pakai bahasa santai akrab.`;
 
-        // PERUBAHAN UTAMA DI SINI:
-        // 1. URL dibersihkan, tidak pakai ?key= lagi.
-        // 2. Kunci AQ... milikmu dimasukkan lewat jalur khusus 'x-goog-api-key' di Headers.
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
+        // 2. KIRIM KE GEMINI (Kembali menggunakan ?key= di URL)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-goog-api-key': 'AQ.Ab8RN6LVpOeineq12dVJH3LWGBIxYLINJoUXI3f-8WWNKNbKJQ' // <-- Langsung tempel di sini
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
-
 
         const data = await response.json();
         
@@ -293,9 +293,10 @@ window.createNewGRCode = function() {
         }
     } catch (error) {
         console.error("Error:", error);
-        aiText1.innerText = "Koneksi gagal. Pastikan internet stabil.";
+        aiText1.innerText = "Error Sistem: " + error.message;
     }
-        }
+}
+
 
         
 // ==========================================

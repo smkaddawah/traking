@@ -254,14 +254,15 @@ window.createNewGRCode = function() {
         // PERUBAHAN UTAMA DI SINI:
         // 1. URL dibersihkan, tidak pakai ?key= lagi.
         // 2. Kunci AQ... milikmu dimasukkan lewat jalur khusus 'x-goog-api-key' di Headers.
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'x-goog-api-key': GEMINI_API_KEY // <--- API Key AQ... kamu masuk lewat sini!
+                'x-goog-api-key': 'AQ.Ab8RN6LVpOeineq12dVJH3LWGBIxYLINJoUXI3f-8WWNKNbKJQ' // <-- Langsung tempel di sini
             },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
+
 
         const data = await response.json();
         

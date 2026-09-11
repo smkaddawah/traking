@@ -14,6 +14,17 @@ let currentSaldo = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     // Inisialisasi semua fitur
+    // Set default tanggal transaksi kasir ke hari ini
+    const inputTanggal = document.getElementById('inputTanggalTransaksi');
+    if (inputTanggal) {
+        // Mendapatkan tanggal hari ini dengan format YYYY-MM-DD
+        const today = new Date();
+        // Menyesuaikan zona waktu lokal (WIB)
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        inputTanggal.value = `${yyyy}-${mm}-${dd}`;
+    }
     initNavLongPressAndRightClick();
     initCameraScanner();
     initAutoCompleteGR();
@@ -576,10 +587,71 @@ document.addEventListener('DOMContentLoaded', () => {
         btnTambah.addEventListener('click', tambahKeKeranjang);
     }
 
-    const btnSimpanSemua = document.getElementById('btnSimpanSemua');
-    if (btnSimpanSemua) {
-        btnSimpanSemua.addEventListener('click', prosesSimpanSemuaTransaksi);
+    const btnSimpanSemua = // Cari event klik untuk tombol btnSimpanSemua milikmu
+document.getElementById('btnSimpanSemua').addEventListener('click', async function() {
+    
+    // =========================================================
+    // 1. AMBIL TANGGAL DARI KALENDER KASIR
+    // Kita ambil apa yang dipilih user di input kalender
+    // =========================================================
+    const tanggalPilihan = document.getElementById('inputTanggalTransaksi').value; 
+
+    // Pastikan keranjang tidak kosong (asumsi array keranjangmu namanya keranjangBelanja)
+    if (keranjangBelanja.length === 0) {
+        alert("Keranjang masih kosong!");
+        return;
     }
+
+    // Ubah tombol jadi loading
+    const btnSimpan = this;
+    btnSimpan.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+    btnSimpan.disabled = true;
+
+    try {
+        // Loop setiap barang yang ada di keranjang untuk disimpan
+        for (const item of keranjangBelanja) {
+            
+            // Proses Simpan ke Supabase (tabel transaksi)
+            const { error: errTrx } = await db.from('transaksi').insert([
+                {
+                    barang_id: item.id_barang,
+                    jumlah_beli: item.qty,
+                    total_harga: item.total_harga,
+                    
+                    // =========================================================
+                    // 2. MASUKKAN TANGGALNYA KE DATABASE SUPABASE
+                    // Kita gabungkan tanggal pilihan dengan jam (T12:00:00) 
+                    // agar Supabase membacanya dengan format waktu yang benar.
+                    // =========================================================
+                    tanggal_transaksi: `${tanggalPilihan}T12:00:00+07:00` 
+                }
+            ]);
+
+            if (errTrx) throw errTrx;
+
+            // (Di sini biasanya ada kodemu untuk update stok ke tabel barang)
+            // ...
+        }
+
+        alert("Semua transaksi berhasil disimpan!");
+        
+        // Reset form dan keranjang setelah berhasil
+        keranjangBelanja = [];
+        // renderKeranjang(); // panggil fungsi pembuat ulang list UI keranjangmu (jika ada)
+        
+        // Tutup otomatis modal kasir-nya
+        const modalBelanja = bootstrap.Modal.getInstance(document.getElementById('modalBelanja'));
+        if (modalBelanja) modalBelanja.hide();
+
+    } catch (error) {
+        console.error("Gagal menyimpan transaksi:", error);
+        alert("Terjadi kesalahan saat menyimpan data!");
+    } finally {
+        // Kembalikan tombol seperti semula
+        btnSimpan.innerHTML = 'Simpan & Bayar Semua Transaksi';
+        btnSimpan.disabled = false;
+    }
+});
     
     // Validasi real-time input sisa stok agar tidak lebih besar dari stok sebelumnya
     const inputSisaStok = document.getElementById('inputSisaStokLama');

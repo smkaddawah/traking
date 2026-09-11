@@ -230,7 +230,8 @@ async function fetchGeminiAIInsights() {
     if (!aiText1) return;
 
     // ATURAN PEMBLOKIRAN AIzaSy SUDAH DIHAPUS - KUNCI AQ... SEKARANG DITERIMA!
-    if (GEMINI_API_KEY === 'AQ.Ab8RN6JCBA-8xydWMHL9c09eI58rE7jqS6ayZOuc2h3c6ECPHw' || GEMINI_API_KEY.trim() === '') {
+    // Cukup cek apakah kuncinya kosong atau masih teks bawaan
+    if (GEMINI_API_KEY === 'GANTI_DENGAN_API_KEY_GEMINI_ANDA' || GEMINI_API_KEY.trim() === '') {
         aiText1.innerText = "Error: Masukkan API Key di script.js.";
         return;
     }

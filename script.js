@@ -262,7 +262,7 @@ window.createNewGRCode = function() {
 
         // Minta respons AI menggunakan model gemini-1.5-flash yang stabil
         const response = await ai.models.generateContent({
-           model: 'gemini-2.0-flash',
+           model: 'gemini-3.8-flash',
             contents: promptText,
         });
 

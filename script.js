@@ -222,7 +222,7 @@ window.createNewGRCode = function() {
 // 5. INTEGRASI GEMINI AI (INSIGHTS)
 // ==========================================
 
-        async function fetchGeminiAIInsights() {
+       async function fetchGeminiAIInsights() {
     const aiText1 = document.getElementById('ai-text-1');
     const aiText2 = document.getElementById('ai-text-2');
     if (!aiText1) return;
@@ -236,14 +236,9 @@ window.createNewGRCode = function() {
     if (aiText2) aiText2.innerText = "Sabar ya, tunggu sebentar...";
 
     try {
-        // 1. AMBIL DATA DARI DATABASE (SUPABASE)
-        const { data: trxData, error: errTrx } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
-        const { data: barangData, error: errBarang } = await db.from('barang').select('*');
-
-        // CEK DI CONSOLE (F12) - Bukti bahwa data berhasil diambil dari database
-        console.log("Data Transaksi:", trxData);
-        console.log("Error Transaksi:", errTrx);
-        console.log("Data Barang:", barangData);
+        // 1. Ambil data dari Supabase
+        const { data: trxData } = await db.from('transaksi').select('*, barang(nama_barang, kategori, harga_satuan, stok_saat_ini)').order('tanggal_transaksi', { ascending: false });
+        const { data: barangData } = await db.from('barang').select('*');
 
         let infoBarang = barangData && barangData.length > 0 ? barangData.map(b => `- ${b.nama_barang} (Kat: ${b.kategori}, Stok: ${b.stok_saat_ini})`).join('\n') : "Belum ada barang.";
         let infoTrx = trxData && trxData.length > 0 ? trxData.map(t => `- Beli ${t.barang?.nama_barang || 'Barang'} (${t.jumlah_beli}x) pd ${new Date(t.tanggal_transaksi).toLocaleDateString('id-ID')}`).join('\n') : "Belum ada transaksi.";
@@ -254,46 +249,49 @@ window.createNewGRCode = function() {
         2. Saran kelola uang dari pola itu.
         Pakai bahasa santai akrab.`;
 
-        // 2. KIRIM KE GEMINI (Kembali menggunakan ?key= di URL)
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+        // =================================================================
+        // 2. CARA BARU: MENGGUNAKAN GOOGLE GEN-AI SDK DARI DOKUMENTASI
+        // Kita import SDK-nya secara langsung menggunakan jaringan CDN
+        // =================================================================
+        const { GoogleGenAI } = await import('https://esm.run/@google/genai');
+        
+        // Inisialisasi SDK dengan kunci AQ... milikmu
+        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+        // Minta respons AI menggunakan model gemini-1.5-flash yang stabil
+        const response = await ai.models.generateContent({
+            model: 'gemini-1.5-flash',
+            contents: promptText,
         });
 
-        const data = await response.json();
+        // Ekstrak hasil teksnya
+        const fullText = response.text;
         
-        if (data.error) {
-            console.error("Gemini API Error:", data.error.message);
-            aiText1.innerText = "Gagal memuat AI: " + data.error.message;
-            return;
-        }
+        if (!fullText) throw new Error("AI tidak memberikan jawaban.");
 
-        if (data.candidates && data.candidates.length > 0) {
-            const fullText = data.candidates[0].content.parts[0].text;
-            const parts = fullText.split('|||');
+        const parts = fullText.split('|||');
+        const teksPertama = parts[0] ? parts[0].trim() : fullText;
+        const teksKedua = parts[1] ? parts[1].trim() : "Terus semangat catat keuanganmu!";
 
-            const teksPertama = parts[0] ? parts[0].trim() : fullText;
-            const teksKedua = parts[1] ? parts[1].trim() : "Terus semangat catat keuanganmu!";
+        // Tampilkan ke layar
+        aiText1.innerText = teksPertama;
+        if (aiText2) aiText2.innerText = teksKedua;
 
-            aiText1.innerText = teksPertama;
-            if (aiText2) aiText2.innerText = teksKedua;
+        // Simpan ke Supabase (Caching)
+        await db.from('ai_insight').upsert([{
+            id: 1,
+            teks_utama: teksPertama,
+            teks_analisis: teksKedua
+        }]);
+        
+        const detailCatatan = document.getElementById('detailCatatanAI');
+        if (detailCatatan) detailCatatan.innerText = teksPertama;
 
-            await db.from('ai_insight').upsert([{
-                id: 1,
-                teks_utama: teksPertama,
-                teks_analisis: teksKedua
-            }]);
-            
-            const detailCatatan = document.getElementById('detailCatatanAI');
-            if (detailCatatan) detailCatatan.innerText = teksPertama;
-        }
     } catch (error) {
-        console.error("Error:", error);
-        aiText1.innerText = "Error Sistem: " + error.message;
+        console.error("Error Gemini SDK:", error);
+        aiText1.innerText = "Gagal memuat AI: " + error.message;
     }
 }
-
 
         
 // ==========================================

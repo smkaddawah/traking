@@ -591,6 +591,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btnTambah.addEventListener('click', tambahKeKeranjang);
     }
 
+    // === TAMBAHKAN 4 BARIS INI UNTUK MENGAKTIFKAN TOMBOL SIMPAN ===
+    const btnSimpanSemua = document.getElementById('btnSimpanSemua');
+    if (btnSimpanSemua) {
+        btnSimpanSemua.addEventListener('click', prosesSimpanSemuaTransaksi);
+    }
+    // =============================================================
+
     
     // Validasi real-time input sisa stok agar tidak lebih besar dari stok sebelumnya
     const inputSisaStok = document.getElementById('inputSisaStokLama');

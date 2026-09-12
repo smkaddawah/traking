@@ -384,10 +384,18 @@ async function handleSimpanSaldo() {
 
 async function handleSimpanBelanja(e) {
     e.preventDefault();
+    
+    // --- TAMBAHAN BARU: CEGAH BENTROK DENGAN KERANJANG ---
+    // Jika keranjang ada isinya, batalkan fungsi simpan satuan ini
+    // Biarkan fungsi keranjang yang bekerja
+    if (keranjangBelanja.length > 0) return; 
+    // -----------------------------------------------------
+
     const kode = document.getElementById('inputKode').value.trim();
     const nama = document.getElementById('inputNama').value.trim();
     const kategori = document.getElementById('inputKategori').value;
     const qty = parseInt(document.getElementById('inputQty').value) || 1;
+    // ... (biarkan sisa kodenya ke bawah sama persis)
     
     // Ambil sisa stok lama yang diinput user
     const sisaStokLama = parseInt(document.getElementById('inputSisaStokLama')?.value) || 0;
@@ -688,7 +696,9 @@ window.hapusItemKeranjang = function(index) {
     renderKeranjang();
 };
 
-async function prosesSimpanSemuaTransaksi() {
+async function prosesSimpanSemuaTransaksi(e) {
+    if (e) e.preventDefault(); // Mencegah form reload yang bikin gagal simpan
+
     if (keranjangBelanja.length === 0) return;
 
     let totalSemuaBelanja = keranjangBelanja.reduce((sum, item) => sum + item.subtotal, 0);
@@ -702,68 +712,79 @@ async function prosesSimpanSemuaTransaksi() {
     let tanggalPilihan = document.getElementById('inputTanggalTransaksi')?.value;
     if (!tanggalPilihan) tanggalPilihan = new Date().toISOString().split('T')[0];
 
-    // Proses loop simpan setiap item ke Supabase
-    for (const item of keranjangBelanja) {
-        let barangId = null;
-        const { data: existingBarang } = await db
-            .from('barang')
-            .select('*')
-            .eq('kode_gr', item.kode)
-            .maybeSingle();
+    // Ganti tombol jadi loading agar user tidak klik 2x
+    const btnSimpan = document.getElementById('btnSimpanSemua');
+    if (btnSimpan) {
+        btnSimpan.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+        btnSimpan.disabled = true;
+    }
 
-        if (existingBarang) {
-            barangId = existingBarang.id;
-            const stokBaruTotal = item.sisaStokLama + item.qty;
-            await db
+    try {
+        // Proses loop simpan setiap item ke Supabase
+        for (const item of keranjangBelanja) {
+            let barangId = null;
+            const { data: existingBarang, error: errCek } = await db
                 .from('barang')
-                .update({ 
+                .select('*')
+                .eq('kode_gr', item.kode)
+                .maybeSingle();
+
+            if (existingBarang) {
+                barangId = existingBarang.id;
+                const stokBaruTotal = item.sisaStokLama + item.qty;
+                await db.from('barang').update({ 
                     stok_saat_ini: stokBaruTotal,
                     harga_satuan: item.harga 
-                })
-                .eq('id', barangId);
-        } else {
-            const { data: newBarang, error: errBarang } = await db
-                .from('barang')
-                .insert([{
+                }).eq('id', barangId);
+            } else {
+                const { data: newBarang, error: errBarang } = await db.from('barang').insert([{
                     kode_gr: item.kode,
                     nama_barang: item.nama,
                     kategori: item.kategori,
                     harga_satuan: item.harga,
                     stok_saat_ini: item.qty
-                }])
-                .select()
-                .single();
+                }]).select().single();
 
-            if (errBarang) {
-                alert('Gagal menyimpan master barang ' + item.nama + ': ' + errBarang.message);
-                continue;
+                if (errBarang) throw errBarang;
+                barangId = newBarang.id;
             }
-            barangId = newBarang.id;
+
+            // Simpan ke tabel transaksi dengan pengecekan error ketat
+            const { error: errTrx } = await db.from('transaksi').insert([{
+                barang_id: barangId,
+                jumlah_beli: item.qty,
+                total_harga: item.subtotal,
+                tanggal_transaksi: `${tanggalPilihan}T12:00:00+07:00`
+            }]);
+
+            if (errTrx) throw errTrx;
         }
 
-        // Simpan ke tabel transaksi dengan tambahan TANGGAL
-        await db.from('transaksi').insert([{
-            barang_id: barangId,
-            jumlah_beli: item.qty,
-            total_harga: item.subtotal,
-            tanggal_transaksi: `${tanggalPilihan}T12:00:00+07:00`
-        }]);
+        // Update Saldo Terakhir sekaligus
+        currentSaldo -= totalSemuaBelanja;
+        await db.from('saldo').insert([{ total_saldo: currentSaldo }]);
+
+        alert('Semua transaksi kasir berhasil disimpan!');
+        
+        // Kosongkan keranjang & tutup modal
+        keranjangBelanja = [];
+        renderKeranjang();
+        
+        const modalEl = document.getElementById('modalBelanja');
+        if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
+        
+        loadDataFromSupabase();
+
+    } catch (error) {
+        console.error("Error Simpan Keranjang:", error);
+        alert("Gagal menyimpan data ke database! Buka F12 (Console) untuk melihat detail errornya.");
+    } finally {
+        // Kembalikan tombol seperti semula
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan & Bayar Semua Transaksi';
+            btnSimpan.disabled = false;
+        }
     }
-
-    // Update Saldo Terakhir sekaligus
-    currentSaldo -= totalSemuaBelanja;
-    await db.from('saldo').insert([{ total_saldo: currentSaldo }]);
-
-    alert('Semua transaksi kasir berhasil disimpan!');
-    
-    // Kosongkan keranjang & tutup modal
-    keranjangBelanja = [];
-    renderKeranjang();
-    
-    const modalEl = document.getElementById('modalBelanja');
-    bootstrap.Modal.getInstance(modalEl).hide();
-    
-    loadDataFromSupabase();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

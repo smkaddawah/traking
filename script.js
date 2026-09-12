@@ -7,9 +7,6 @@ const SUPABASE_KEY = 'sb_publishable_LJn-AYxrSlJ6BzIfhJxh3w_vHHvHupD';
 // Menggunakan nama variabel 'db' agar tidak bentrok dengan global 'supabase' dari CDN
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Ganti dengan API Key Google Gemini Anda (Gratis dari Google AI Studio)
-const GEMINI_API_KEY = "AQ.Ab8RN6JXPmYarkWUdwauefdbPANJT64qCeRO-xAIgNRcemOIAw";
-
 let currentSaldo = 0;
 
 document.addEventListener('DOMContentLoaded', () => {

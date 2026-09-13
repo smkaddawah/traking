@@ -245,7 +245,7 @@ window.createNewGRCode = function() {
         let infoBarang = barangData && barangData.length > 0 ? barangData.map(b => `- ${b.nama_barang} (Kat: ${b.kategori}, Stok: ${b.stok_saat_ini})`).join('\n') : "Belum ada barang.";
         let infoTrx = trxData && trxData.length > 0 ? trxData.map(t => `- Beli ${t.barang?.nama_barang || 'Barang'} (${t.jumlah_beli}x) pd ${new Date(t.tanggal_transaksi).toLocaleDateString('id-ID')}`).join('\n') : "Belum ada transaksi.";
 
-        const promptText = `Sebagai penasihat keuangan dan sahabat santai. Data barang: [${infoBarang}]. Data transaksi: [${infoTrx}]. 
+        const promptText = `saya adalah riyadi dan galina sepasang suami-istri,kmu jadilah Sebagai penasihat keuangan dan sahabat santai. Data barang: [${infoBarang}]. Data transaksi: [${infoTrx}]. 
         Bagi 2 bagian dipisah '|||':
         1. Ulasan mendalam soal pola konsumsi barang (ingatkan santai misal takaran bulanan habis cepat).
         2. Saran kelola uang dari pola itu.
